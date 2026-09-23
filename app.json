@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "STYLXH TEST OPS",
+    "slug": "stylxh-test-ops",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#090d16"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.stylxh.testops",
+      "infoPlist": {
+        "CFBundleDisplayName": "STYLXH TEST OPS",
+        "UIRequiresFullScreen": true,
+        "NSCameraUsageDescription": "Used to take photo verification of completed media player swaps.",
+        "NSPhotoLibraryUsageDescription": "Used to view and upload reference documentation.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.stylxh.testops",
+      "adaptiveIcon": {
+        "backgroundColor": "#090d16"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-mail-composer",
+      "expo-sharing",
+      "expo-status-bar"
+    ]
+  }
+}
