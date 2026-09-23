@@ -12,19 +12,32 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Select Latest Compatible Xcode & Swift Toolchain
+      - name: Select Compatible Xcode Version
         run: |
           echo "=== Available Xcode Installations ==="
-          ls -d /Applications/Xcode*.app
-          
-          # Automatically select highest installed Xcode version on the runner
-          LATEST_XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -n 1)
-          echo "Selecting Xcode: $LATEST_XCODE"
-          sudo xcode-select -s "$LATEST_XCODE/Contents/Developer"
-          
-          echo "=== Active Xcode Version ==="
+          ls -d /Applications/Xcode*.app || true
+
+          # Find compatible Xcode version between 16.4 and 26.0 (avoiding 26.3 breaking Clang annotations)
+          TARGET_XCODE=""
+          for candidate in /Applications/Xcode_16.4*.app /Applications/Xcode_26.0*.app /Applications/Xcode_16*.app; do
+            if [ -d "$candidate" ] && [[ "$candidate" != *"26.3"* ]]; then
+              TARGET_XCODE="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$TARGET_XCODE" ]; then
+            echo "No explicit candidate found, using default available non-26.3 Xcode..."
+            TARGET_XCODE=$(ls -d /Applications/Xcode*.app | grep -v "26.3" | tail -n 1)
+          fi
+
+          echo "Selected Xcode: $TARGET_XCODE"
+          sudo xcode-select -s "$TARGET_XCODE/Contents/Developer"
+          export DEVELOPER_DIR="$TARGET_XCODE/Contents/Developer"
+          echo "DEVELOPER_DIR=$TARGET_XCODE/Contents/Developer" >> $GITHUB_ENV
+
+          echo "=== Active Toolchain ==="
           xcodebuild -version
-          echo "=== Active Swift Version ==="
           swift --version
 
       - name: Setup Node.js
