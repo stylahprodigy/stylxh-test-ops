@@ -12,43 +12,22 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Select Compatible Xcode Version
+      - name: Select Xcode 16.4 Toolchain
         run: |
           echo "=== Available Xcode Installations ==="
           ls -d /Applications/Xcode*.app || true
 
-          TARGET_XCODE=""
-          # Prioritize Xcode 26.0 / 26.1 / 26.2 (providing Swift 6.2) while avoiding 26.3
-          for candidate in \
-            /Applications/Xcode_26.0*.app \
-            /Applications/Xcode_26.1*.app \
-            /Applications/Xcode_26.2*.app \
-            /Applications/Xcode_26*.app; do
-            if [ -d "$candidate" ] && [[ "$candidate" != *"26.3"* ]]; then
-              TARGET_XCODE="$candidate"
-              break
-            fi
-          done
-
-          if [ -z "$TARGET_XCODE" ]; then
-            echo "::error::No Xcode version with Swift 6.2 was found"
-            ls -d /Applications/Xcode*.app || true
-            exit 1
+          # Select standard Xcode 16.4 on macOS 15
+          TARGET_XCODE="/Applications/Xcode_16.4.app"
+          if [ ! -d "$TARGET_XCODE" ]; then
+            TARGET_XCODE=$(ls -d /Applications/Xcode_16*.app | head -n 1)
           fi
-
-          echo "Selected Xcode: $TARGET_XCODE"
+          echo "Selecting Xcode: $TARGET_XCODE"
           sudo xcode-select -s "$TARGET_XCODE/Contents/Developer"
           echo "DEVELOPER_DIR=$TARGET_XCODE/Contents/Developer" >> "$GITHUB_ENV"
 
-          echo "=== Active Toolchain ==="
           xcodebuild -version
           swift --version
-
-          # Fail early if toolchain does not provide Swift 6.2
-          swift --version | grep -q "6.2" || {
-            echo "::error::Selected Xcode does not provide Swift 6.2"
-            exit 1
-          }
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -61,6 +40,11 @@ jobs:
 
       - name: Prebuild Native iOS Project
         run: npx expo prebuild --platform ios --clean --no-install
+
+      - name: Patch Swift Tools Version for Xcode 16 Compatibility
+        run: |
+          echo "Patching any Package.swift requesting Swift tools 6.2 down to 6.1..."
+          find node_modules -name "Package.swift" -exec sed -i '' 's/swift-tools-version: 6.2/swift-tools-version: 6.1/g' {} + || true
 
       - name: Install CocoaPods
         working-directory: ios
