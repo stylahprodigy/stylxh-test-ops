@@ -12,10 +12,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Select Xcode 16.2
+      - name: Select Latest Compatible Xcode & Swift Toolchain
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer || sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer || xcode-select -p
+          echo "=== Available Xcode Installations ==="
+          ls -d /Applications/Xcode*.app
+          
+          # Automatically select highest installed Xcode version on the runner
+          LATEST_XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -n 1)
+          echo "Selecting Xcode: $LATEST_XCODE"
+          sudo xcode-select -s "$LATEST_XCODE/Contents/Developer"
+          
+          echo "=== Active Xcode Version ==="
           xcodebuild -version
+          echo "=== Active Swift Version ==="
+          swift --version
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -24,7 +34,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci || npm install
+        run: npm ci
 
       - name: Prebuild Native iOS Project
         run: npx expo prebuild --platform ios --clean --no-install
@@ -35,7 +45,6 @@ jobs:
 
       - name: Build and Package Unsigned IPA for KSign
         run: |
-          # Use the main CocoaPods workspace directly under ios/ (not inside the .xcodeproj)
           WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
           if [ -z "$WORKSPACE" ]; then
             WORKSPACE="ios/STYLXHTESTOPS.xcworkspace"
