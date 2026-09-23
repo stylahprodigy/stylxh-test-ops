@@ -35,19 +35,21 @@ jobs:
 
       - name: Build and Package Unsigned IPA for KSign
         run: |
-          WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
-          echo "Found workspace: $WORKSPACE"
+          # Use the main CocoaPods workspace directly under ios/ (not inside the .xcodeproj)
+          WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
+          if [ -z "$WORKSPACE" ]; then
+            WORKSPACE="ios/STYLXHTESTOPS.xcworkspace"
+          fi
+          echo "Found CocoaPods workspace: $WORKSPACE"
           
           SCHEME="STYLXHTESTOPS"
-          if [ ! -d "ios/$SCHEME.xcodeproj" ]; then
-            SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | awk '/Schemes:/{flag=1;next}/^$/{flag=0}flag' | head -n 1 | tr -d ' ')
-          fi
           echo "Using scheme: $SCHEME"
 
           xcodebuild -workspace "$WORKSPACE" \
                      -scheme "$SCHEME" \
                      -configuration Release \
                      -sdk iphoneos \
+                     -destination "generic/platform=iOS" \
                      -derivedDataPath build \
                      CODE_SIGN_IDENTITY="" \
                      CODE_SIGNING_REQUIRED=NO \
