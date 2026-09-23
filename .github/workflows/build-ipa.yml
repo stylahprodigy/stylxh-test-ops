@@ -17,9 +17,13 @@ jobs:
           echo "=== Available Xcode Installations ==="
           ls -d /Applications/Xcode*.app || true
 
-          # Find compatible Xcode version between 16.4 and 26.0 (avoiding 26.3 breaking Clang annotations)
           TARGET_XCODE=""
-          for candidate in /Applications/Xcode_16.4*.app /Applications/Xcode_26.0*.app /Applications/Xcode_16*.app; do
+          # Prioritize Xcode 26.0 / 26.1 / 26.2 (providing Swift 6.2) while avoiding 26.3
+          for candidate in \
+            /Applications/Xcode_26.0*.app \
+            /Applications/Xcode_26.1*.app \
+            /Applications/Xcode_26.2*.app \
+            /Applications/Xcode_26*.app; do
             if [ -d "$candidate" ] && [[ "$candidate" != *"26.3"* ]]; then
               TARGET_XCODE="$candidate"
               break
@@ -27,18 +31,24 @@ jobs:
           done
 
           if [ -z "$TARGET_XCODE" ]; then
-            echo "No explicit candidate found, using default available non-26.3 Xcode..."
-            TARGET_XCODE=$(ls -d /Applications/Xcode*.app | grep -v "26.3" | tail -n 1)
+            echo "::error::No Xcode version with Swift 6.2 was found"
+            ls -d /Applications/Xcode*.app || true
+            exit 1
           fi
 
           echo "Selected Xcode: $TARGET_XCODE"
           sudo xcode-select -s "$TARGET_XCODE/Contents/Developer"
-          export DEVELOPER_DIR="$TARGET_XCODE/Contents/Developer"
-          echo "DEVELOPER_DIR=$TARGET_XCODE/Contents/Developer" >> $GITHUB_ENV
+          echo "DEVELOPER_DIR=$TARGET_XCODE/Contents/Developer" >> "$GITHUB_ENV"
 
           echo "=== Active Toolchain ==="
           xcodebuild -version
           swift --version
+
+          # Fail early if toolchain does not provide Swift 6.2
+          swift --version | grep -q "6.2" || {
+            echo "::error::Selected Xcode does not provide Swift 6.2"
+            exit 1
+          }
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
